@@ -62,6 +62,7 @@ function PlaylistsPage() {
                     ) : (
                       Array.from({ length: 4 }).map((_, i) => {
                         const t = covers[i % covers.length];
+                        if (!t) return null;
                         return (
                           <img
                             key={i}
