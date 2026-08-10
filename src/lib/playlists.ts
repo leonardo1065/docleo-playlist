@@ -65,12 +65,13 @@ export function usePlaylists() {
   }, []);
 
   const addTracks = useCallback((playlistId: string, tracks: Track[]) => {
-    let added = 0;
-    const next = read().map((p) => {
+    let addedCount = 0;
+    const currentPlaylists = read();
+    const next = currentPlaylists.map((p) => {
       if (p.id !== playlistId) return p;
-      const existing = new Set(p.tracks.map((t) => t.id));
-      const fresh = tracks.filter((t) => !existing.has(t.id));
-      added = fresh.length;
+      const existingIds = new Set(p.tracks.map((t) => t.id));
+      const fresh = tracks.filter((t) => !existingIds.has(t.id));
+      addedCount = fresh.length;
       return { ...p, tracks: [...p.tracks, ...fresh] };
     });
     write(next);
