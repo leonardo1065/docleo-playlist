@@ -1,17 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Track } from "./itunes";
 
-export type Track = {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  artwork: string;
-  previewUrl: string | null;
-  durationMs: number;
-};
+export type { Track };
 
 const inputSchema = z.object({ term: z.string() });
+
 
 export const searchTracks = createServerFn({ method: "GET" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
