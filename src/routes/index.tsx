@@ -57,22 +57,23 @@ function Home() {
     });
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-forest pb-32">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-5xl px-4">
-        <section className="py-14 text-center sm:py-20">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+        <section className="py-14 text-center sm:py-28">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
             <Sparkles className="size-3.5 text-primary" />
-            Busque, ouça e selecione
+            Monte sua trilha sonora na natureza
           </span>
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Monte sua <span className="text-primary">Playlist</span>
+          <h1 className="mt-5 text-4xl font-bold tracking-tight text-white drop-shadow-lg sm:text-6xl">
+            Monte sua <span className="text-primary-foreground underline decoration-primary underline-offset-8">Playlist</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
-            Digite o nome do cantor ou do grupo, escute uma prévia de cada faixa e escolha as
-            músicas que vão entrar na sua playlist.
+          <p className="mx-auto mt-6 max-w-xl text-balance text-lg text-white/90 drop-shadow-md">
+            Busque seus artistas favoritos e selecione as melhores músicas para sua nova playlist, 
+            tudo em um ambiente tranquilo e inspirador.
           </p>
+
 
           <form
             className="mx-auto mt-8 flex w-full max-w-xl items-center gap-2"
@@ -113,11 +114,11 @@ function Home() {
               Nenhuma música encontrada para “{query}”.
             </p>
           ) : data && data.length > 0 ? (
-            <>
-              <h2 className="mb-4 text-sm font-medium text-muted-foreground">
-                {data.length} resultados para “{query}”
+            <div className="rounded-3xl border border-white/10 bg-white/70 p-6 backdrop-blur-xl dark:bg-black/70">
+              <h2 className="mb-6 text-sm font-semibold text-foreground/80">
+                {data.length} resultados encontrados para “{query}”
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {data.map((track) => (
                   <TrackRow
                     key={track.id}
@@ -129,12 +130,15 @@ function Home() {
                   />
                 ))}
               </div>
-            </>
+            </div>
           ) : (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              Comece buscando por um artista para ver as músicas.
-            </p>
+            <div className="py-20 text-center">
+              <p className="text-lg font-medium text-white drop-shadow-md">
+                Encontre a harmonia perfeita. Comece sua busca acima.
+              </p>
+            </div>
           )}
+
         </section>
       </main>
 
