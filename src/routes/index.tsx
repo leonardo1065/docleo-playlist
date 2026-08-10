@@ -38,13 +38,13 @@ function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { playingId, toggle } = usePreviewPlayer();
 
-  const search = useServerFn(searchTracks);
   const { data, isFetching, isError } = useQuery({
     queryKey: ["search", query],
-    queryFn: () => search({ data: { term: query } }),
+    queryFn: () => searchTracksClient(query),
     enabled: query.length > 0,
     staleTime: 5 * 60 * 1000,
   });
+
 
   const selectedList = Object.values(selected);
 
