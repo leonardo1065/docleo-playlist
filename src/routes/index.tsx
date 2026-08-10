@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Search, Sparkles, X } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackRow } from "@/components/TrackRow";
@@ -9,8 +8,9 @@ import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { searchTracks, type Track } from "@/lib/itunes.functions";
+import { searchTracksClient, type Track } from "@/lib/itunes";
 import { usePreviewPlayer } from "@/lib/use-preview-player";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
