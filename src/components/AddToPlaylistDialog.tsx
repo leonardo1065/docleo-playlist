@@ -28,11 +28,13 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
   const [description, setDescription] = useState("");
 
   const finish = (playlistName: string, added: number) => {
-    toast.success(
-      added > 0
-        ? `${added} ${added === 1 ? "música adicionada" : "músicas adicionadas"} em "${playlistName}"`
-        : `Essas músicas já estavam em "${playlistName}"`,
-    );
+    if (added > 0) {
+      toast.success(
+        `${added} ${added === 1 ? "música adicionada" : "músicas adicionadas"} em "${playlistName}"`,
+      );
+    } else {
+      toast.info(`Essas músicas já estavam em "${playlistName}"`);
+    }
     setCreating(false);
     setName("");
     setDescription("");
