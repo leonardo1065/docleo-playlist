@@ -170,7 +170,11 @@ function Home() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         tracks={selectedList}
-        onDone={() => setSelected({})}
+        onDone={() => {
+          setSelected({});
+          setTerm("");
+          setQuery("");
+        }}
       />
     </div>
   );
