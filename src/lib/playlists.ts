@@ -75,7 +75,7 @@ export function usePlaylists() {
       return { ...p, tracks: [...p.tracks, ...fresh] };
     });
     write(next);
-    return added;
+    return addedCount;
   }, []);
 
   const removeTrack = useCallback((playlistId: string, trackId: string) => {
