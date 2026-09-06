@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
+import { ArrowLeft, Pencil, Play, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackRow } from "@/components/TrackRow";
+import { PlaylistPlayer } from "@/components/PlaylistPlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { usePlaylists, formatDuration } from "@/lib/playlists";
-import { usePreviewPlayer } from "@/lib/use-preview-player";
 
 export const Route = createFileRoute("/playlists/$id")({
   head: () => ({
@@ -38,12 +38,14 @@ function PlaylistDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { playlists, ready, removeTrack, renamePlaylist, deletePlaylist } = usePlaylists();
-  const { playingId, toggle } = usePreviewPlayer();
+  const [queueIndex, setQueueIndex] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const playlist = playlists.find((p) => p.id === id);
+  const currentTrack =
+    queueIndex !== null && playlist ? playlist.tracks[queueIndex] : undefined;
 
   if (!ready) {
     return (
@@ -93,6 +95,12 @@ function PlaylistDetail() {
             </p>
           </div>
           <div className="flex gap-2">
+            {playlist.tracks.length > 0 ? (
+              <Button className="rounded-full" onClick={() => setQueueIndex(0)}>
+                <Play className="size-4" />
+                Tocar tudo
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="rounded-full"
@@ -120,6 +128,17 @@ function PlaylistDetail() {
           </div>
         </div>
 
+        {queueIndex !== null && currentTrack ? (
+          <div className="mt-8">
+            <PlaylistPlayer
+              tracks={playlist.tracks}
+              index={queueIndex}
+              onIndexChange={setQueueIndex}
+              onStop={() => setQueueIndex(null)}
+            />
+          </div>
+        ) : null}
+
         <div className="mt-8 space-y-2">
           {playlist.tracks.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
@@ -129,12 +148,15 @@ function PlaylistDetail() {
               </Button>
             </div>
           ) : (
-            playlist.tracks.map((track) => (
+            playlist.tracks.map((track, i) => (
               <TrackRow
                 key={track.id}
                 track={track}
-                playing={playingId === track.id}
-                onTogglePlay={() => toggle(track.id, track.previewUrl)}
+                inlinePlayer={false}
+                playing={currentTrack?.id === track.id}
+                onTogglePlay={() =>
+                  setQueueIndex(currentTrack?.id === track.id ? null : i)
+                }
                 action={
                   <button
                     type="button"

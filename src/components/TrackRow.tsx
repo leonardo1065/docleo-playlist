@@ -10,6 +10,7 @@ type Props = {
   selected?: boolean;
   onToggleSelect?: () => void;
   action?: React.ReactNode;
+  inlinePlayer?: boolean;
 };
 
 export function TrackRow({
@@ -19,6 +20,7 @@ export function TrackRow({
   selected,
   onToggleSelect,
   action,
+  inlinePlayer = true,
 }: Props) {
   const selectable = typeof onToggleSelect === "function";
   const playable = Boolean(track.previewUrl || track.youtubeId);
@@ -100,7 +102,7 @@ export function TrackRow({
         </span>
       ) : null}
     </div>
-      {playing && track.youtubeId ? (
+      {inlinePlayer && playing && track.youtubeId ? (
         <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <iframe
             title={`Player: ${track.title}`}
