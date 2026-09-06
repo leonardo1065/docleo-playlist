@@ -15,7 +15,7 @@ export const Route = createFileRoute("/playlists/")({
       { property: "og:title", content: "Minhas playlists" },
       {
         property: "og:description",
-        content: "Todas as playlists que você criou, salvas neste navegador.",
+        content: "Todas as playlists que você criou, salvas na sua conta.",
       },
     ],
   }),
@@ -31,7 +31,7 @@ function PlaylistsPage() {
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
         <h1 className="text-3xl font-semibold tracking-tight">Minhas playlists</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Suas playlists ficam salvas neste navegador.
+          Suas playlists ficam salvas na sua conta e aparecem em qualquer aparelho.
         </p>
 
         {!ready ? null : playlists.length === 0 ? (

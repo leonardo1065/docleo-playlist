@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import logo from "@/assets/logo.png";
 
 export function SiteHeader() {
-  const { logout } = useAuth();
+  const { logout, username } = useAuth();
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4">
@@ -15,6 +15,9 @@ export function SiteHeader() {
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          {username ? (
+            <span className="hidden text-sm text-muted-foreground sm:inline">Olá, {username}</span>
+          ) : null}
           <Link
             to="/playlists"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary"

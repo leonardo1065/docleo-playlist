@@ -26,6 +26,19 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const run = async (fn: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fn();
+    } catch {
+      toast.error("Não foi possível salvar. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const finish = (playlistName: string, added: number) => {
     if (added > 0) {
@@ -78,11 +91,13 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
                 Voltar
               </Button>
               <Button
-                disabled={!name.trim()}
-                onClick={() => {
-                  const pl = createPlaylist(name, description, tracks);
-                  finish(pl.name, tracks.length);
-                }}
+                disabled={!name.trim() || busy}
+                onClick={() =>
+                  run(async () => {
+                    const pl = await createPlaylist(name, description, tracks);
+                    finish(pl.name, tracks.length);
+                  })
+                }
               >
                 Criar e adicionar
               </Button>
@@ -107,7 +122,10 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => finish(p.name, addTracks(p.id, tracks))}
+                    disabled={busy}
+                    onClick={() =>
+                      run(async () => finish(p.name, await addTracks(p.id, tracks)))
+                    }
                     className="flex w-full items-center justify-between rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
                   >
                     <span className="min-w-0">
