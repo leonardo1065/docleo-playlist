@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { searchTracksClient, type Track } from "@/lib/itunes";
+import { searchYouTube } from "@/lib/youtube.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { cn } from "@/lib/utils";
 import { usePreviewPlayer } from "@/lib/use-preview-player";
 
 
@@ -34,13 +37,16 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [term, setTerm] = useState("");
   const [query, setQuery] = useState("");
+  const [source, setSource] = useState<"itunes" | "youtube">("youtube");
+  const runYouTube = useServerFn(searchYouTube);
   const [selected, setSelected] = useState<Record<string, Track>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const { playingId, toggle } = usePreviewPlayer();
 
   const { data, isFetching, isError } = useQuery({
-    queryKey: ["search", query],
-    queryFn: () => searchTracksClient(query),
+    queryKey: ["search", source, query],
+    queryFn: () =>
+      source === "youtube" ? runYouTube({ data: { term: query } }) : searchTracksClient(query),
     enabled: query.length > 0,
     staleTime: 5 * 60 * 1000,
   });
@@ -96,6 +102,35 @@ function Home() {
               Buscar
             </Button>
           </form>
+
+          <div
+            role="radiogroup"
+            aria-label="Fonte da busca"
+            className="mx-auto mt-4 inline-flex rounded-full border border-white/20 bg-white/10 p-1 backdrop-blur-md"
+          >
+            {(
+              [
+                ["youtube", "YouTube (música completa)"],
+                ["itunes", "iTunes (prévia 30s)"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={source === value}
+                onClick={() => setSource(value)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
+                  source === value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-white/90 hover:bg-white/10",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="pb-10">
