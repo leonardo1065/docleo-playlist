@@ -15,7 +15,7 @@ export const Route = createFileRoute("/playlists/")({
       { property: "og:title", content: "Minhas playlists" },
       {
         property: "og:description",
-        content: "Todas as playlists que você criou, salvas neste navegador.",
+        content: "Todas as playlists que você criou, salvas na sua conta.",
       },
     ],
   }),
