@@ -21,15 +21,21 @@ export function TrackRow({
   action,
 }: Props) {
   const selectable = typeof onToggleSelect === "function";
+  const playable = Boolean(track.previewUrl || track.youtubeId);
 
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-all",
+        "rounded-xl border border-border bg-card transition-all",
         selectable && "cursor-pointer hover:border-primary/40 hover:shadow-sm",
         selected && "border-primary bg-primary/5",
       )}
       onClick={selectable ? onToggleSelect : undefined}
+    >
+    <div
+      className={cn(
+        "group flex items-center gap-3 p-3",
+      )}
     >
       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
         {track.artwork ? (
@@ -44,10 +50,10 @@ export function TrackRow({
         ) : (
           <Music2 className="absolute inset-0 m-auto size-5 text-muted-foreground" />
         )}
-        {track.previewUrl ? (
+        {playable ? (
           <button
             type="button"
-            aria-label={playing ? "Pausar prévia" : "Ouvir prévia"}
+            aria-label={playing ? "Parar" : track.youtubeId ? "Tocar no YouTube" : "Ouvir prévia"}
             onClick={(e) => {
               e.stopPropagation();
               onTogglePlay();
@@ -67,6 +73,8 @@ export function TrackRow({
         <p className="truncate text-sm text-muted-foreground">{track.artist}</p>
         {track.album ? (
           <p className="truncate text-xs text-muted-foreground/80">{track.album}</p>
+        ) : track.youtubeId ? (
+          <p className="truncate text-xs text-muted-foreground/80">YouTube · música completa</p>
         ) : null}
       </div>
 
@@ -90,6 +98,18 @@ export function TrackRow({
             </svg>
           ) : null}
         </span>
+      ) : null}
+    </div>
+      {playing && track.youtubeId ? (
+        <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
+          <iframe
+            title={`Player: ${track.title}`}
+            src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}?autoplay=1&rel=0`}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="aspect-video w-full rounded-lg border-0"
+          />
+        </div>
       ) : null}
     </div>
   );
