@@ -6,6 +6,7 @@ export type Track = {
   artwork: string;
   previewUrl: string | null;
   durationMs: number;
+  youtubeId?: string;
 };
 
 export async function searchTracksClient(term: string): Promise<Track[]> {
