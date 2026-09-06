@@ -13,7 +13,6 @@ export function usePreviewPlayer() {
   }, []);
 
   const toggle = (id: string, url: string | null) => {
-    if (!url) return;
     if (!sharedAudio) {
       sharedAudio = new Audio();
       sharedAudio.addEventListener("ended", () => {
@@ -28,8 +27,10 @@ export function usePreviewPlayer() {
       return;
     }
     sharedAudio.pause();
-    sharedAudio.src = url;
-    void sharedAudio.play().catch(() => undefined);
+    if (url) {
+      sharedAudio.src = url;
+      void sharedAudio.play().catch(() => undefined);
+    }
     currentId.current = id;
     setPlayingId(id);
   };
