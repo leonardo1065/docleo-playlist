@@ -231,7 +231,7 @@ export function usePlaylists() {
         tracks.push({
           id: `local-${id}`,
           title: title.trim() || base,
-          artist: artist.trim(),
+          artist: (artist ?? "").trim(),
           album: "Arquivo do PC",
           artwork: "",
           previewUrl: LOCAL_PREFIX + path,
