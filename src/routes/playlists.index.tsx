@@ -1,7 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ListMusic, Music2 } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { ListMusic, Music2, Plus, Upload, Youtube } from "lucide-react";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { usePlaylists, formatDuration } from "@/lib/playlists";
 
 export const Route = createFileRoute("/playlists/")({
