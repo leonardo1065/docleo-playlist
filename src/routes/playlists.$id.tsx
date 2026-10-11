@@ -49,6 +49,16 @@ function PlaylistDetail() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
+  const { add } = Route.useSearch();
+  const autoOpened = useRef(false);
+
+  useEffect(() => {
+    if (add === "mp3" && ready && !autoOpened.current) {
+      autoOpened.current = true;
+      fileRef.current?.click();
+    }
+  }, [add, ready]);
+
   const playlist = playlists.find((p) => p.id === id);
   const currentTrack =
     queueIndex !== null && playlist ? playlist.tracks[queueIndex] : undefined;
