@@ -133,6 +133,64 @@ function PlaylistsPage() {
           </div>
         )}
       </main>
+
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar nova playlist</DialogTitle>
+            <DialogDescription>
+              Dê um nome e escolha de onde virão as músicas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-pl-name">Nome da playlist</Label>
+              <Input
+                id="new-pl-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex.: Rock para dirigir"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-pl-desc">Descrição (opcional)</Label>
+              <Input
+                id="new-pl-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Uma frase sobre a playlist"
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={!name.trim() || busy}
+                onClick={() => void create("youtube")}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-primary/40 disabled:opacity-50"
+              >
+                <Youtube className="size-6 text-primary" />
+                <span className="text-sm font-medium">Buscar no YouTube</span>
+                <span className="text-xs text-muted-foreground">
+                  Abre a busca para escolher as músicas
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={!name.trim() || busy}
+                onClick={() => void create("mp3")}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-primary/40 disabled:opacity-50"
+              >
+                <Upload className="size-6 text-primary" />
+                <span className="text-sm font-medium">MP3 do PC</span>
+                <span className="text-xs text-muted-foreground">
+                  Abre a playlist para enviar seus arquivos
+                </span>
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
