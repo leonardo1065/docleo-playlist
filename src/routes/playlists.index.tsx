@@ -34,16 +34,50 @@ export const Route = createFileRoute("/playlists/")({
 });
 
 function PlaylistsPage() {
-  const { playlists, ready } = usePlaylists();
+  const { playlists, ready, createPlaylist } = usePlaylists();
+  const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const create = async (type: "youtube" | "mp3") => {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    try {
+      const pl = await createPlaylist(name, description);
+      toast.success(`Playlist "${pl.name}" criada`);
+      setCreating(false);
+      setName("");
+      setDescription("");
+      if (type === "youtube") {
+        void navigate({ to: "/" });
+      } else {
+        void navigate({ to: "/playlists/$id", params: { id: pl.id }, search: { add: "mp3" } });
+      }
+    } catch {
+      toast.error("Não foi possível criar a playlist. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">Minhas playlists</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Suas playlists ficam salvas na sua conta e aparecem em qualquer aparelho.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Minhas playlists</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Suas playlists ficam salvas na sua conta e aparecem em qualquer aparelho.
+            </p>
+          </div>
+          <Button className="rounded-full" onClick={() => setCreating(true)}>
+            <Plus className="size-4" />
+            Criar nova playlist
+          </Button>
+        </div>
 
         {!ready ? null : playlists.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border bg-card p-12 text-center">
