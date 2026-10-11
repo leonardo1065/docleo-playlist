@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, Pencil, Play, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackRow } from "@/components/TrackRow";
@@ -37,8 +37,11 @@ export const Route = createFileRoute("/playlists/$id")({
 function PlaylistDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { playlists, ready, removeTrack, renamePlaylist, deletePlaylist } = usePlaylists();
+  const { playlists, ready, removeTrack, renamePlaylist, deletePlaylist, uploadLocalFiles } =
+    usePlaylists();
   const [queueIndex, setQueueIndex] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -94,7 +97,37 @@ function PlaylistDetail() {
               {formatDuration(total)}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*,.mp3"
+              multiple
+              className="hidden"
+              onChange={async (e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (!files.length) return;
+                setUploading(true);
+                try {
+                  const n = await uploadLocalFiles(playlist.id, files);
+                  toast.success(`${n} ${n === 1 ? "música adicionada" : "músicas adicionadas"} do PC`);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Falha ao enviar arquivo");
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+            <Button
+              variant="outline"
+              className="rounded-full"
+              disabled={uploading}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="size-4" />
+              {uploading ? "Enviando..." : "Adicionar MP3 do PC"}
+            </Button>
             {playlist.tracks.length > 0 ? (
               <Button className="rounded-full" onClick={() => setQueueIndex(0)}>
                 <Play className="size-4" />
