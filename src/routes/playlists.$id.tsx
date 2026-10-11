@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -17,6 +17,9 @@ import {
 import { usePlaylists, formatDuration } from "@/lib/playlists";
 
 export const Route = createFileRoute("/playlists/$id")({
+  validateSearch: (search: Record<string, unknown>): { add?: string } => ({
+    add: typeof search.add === "string" ? search.add : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Playlist — Monte sua Playlist" },
