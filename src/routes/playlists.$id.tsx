@@ -17,9 +17,8 @@ import {
 import { usePlaylists, formatDuration } from "@/lib/playlists";
 
 export const Route = createFileRoute("/playlists/$id")({
-  validateSearch: (search: Record<string, unknown>): { add?: string } => ({
-    add: typeof search.add === "string" ? search.add : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { add?: string } =>
+    typeof search["add"] === "string" ? { add: search["add"] } : {},
   head: () => ({
     meta: [
       { title: "Playlist — Monte sua Playlist" },
