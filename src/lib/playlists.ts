@@ -25,6 +25,25 @@ type TrackRow = {
   position: number;
 };
 
+const LOCAL_PREFIX = "local:";
+
+function readDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const a = new Audio();
+    a.preload = "metadata";
+    a.onloadedmetadata = () => {
+      resolve(Number.isFinite(a.duration) ? Math.round(a.duration * 1000) : 0);
+      URL.revokeObjectURL(url);
+    };
+    a.onerror = () => {
+      resolve(0);
+      URL.revokeObjectURL(url);
+    };
+    a.src = url;
+  });
+}
+
 export function formatDuration(ms: number) {
   const total = Math.round(ms / 1000);
   const m = Math.floor(total / 60);
@@ -60,10 +79,23 @@ async function fetchPlaylists(): Promise<Playlist[]> {
   ]);
   if (e1) throw e1;
   if (e2) throw e2;
+  const localPaths = (rows ?? [])
+    .map((r) => r.preview_url)
+    .filter((u): u is string => Boolean(u?.startsWith(LOCAL_PREFIX)))
+    .map((u) => u.slice(LOCAL_PREFIX.length));
+  const signed = new Map<string, string>();
+  if (localPaths.length) {
+    const { data } = await supabase.storage.from("songs").createSignedUrls(localPaths, 60 * 60 * 12);
+    for (const s of data ?? []) if (s.path && s.signedUrl) signed.set(s.path, s.signedUrl);
+  }
   const byList = new Map<string, Track[]>();
   for (const r of rows ?? []) {
     const arr = byList.get(r.playlist_id) ?? [];
-    arr.push(rowToTrack(r));
+    const t = rowToTrack(r);
+    if (t.previewUrl?.startsWith(LOCAL_PREFIX)) {
+      t.previewUrl = signed.get(t.previewUrl.slice(LOCAL_PREFIX.length)) ?? null;
+    }
+    arr.push(t);
     byList.set(r.playlist_id, arr);
   }
   return (lists ?? []).map((p) => ({
@@ -180,11 +212,43 @@ export function usePlaylists() {
     [refresh],
   );
 
+  const uploadLocalFiles = useCallback(
+    async (playlistId: string, files: File[]) => {
+      if (!userId) throw new Error("Faça login primeiro");
+      const tracks: Track[] = [];
+      for (const file of files) {
+        const id = crypto.randomUUID();
+        const ext = file.name.split(".").pop()?.toLowerCase() || "mp3";
+        const path = `${userId}/${id}.${ext}`;
+        const { error } = await supabase.storage
+          .from("songs")
+          .upload(path, file, { contentType: file.type || "audio/mpeg" });
+        if (error) throw error;
+        const base = file.name.replace(/\.[^.]+$/, "");
+        const [artist, title] = base.includes(" - ")
+          ? [base.split(" - ")[0], base.split(" - ").slice(1).join(" - ")]
+          : ["Meu computador", base];
+        tracks.push({
+          id: `local-${id}`,
+          title: title.trim() || base,
+          artist: (artist ?? "").trim(),
+          album: "Arquivo do PC",
+          artwork: "",
+          previewUrl: LOCAL_PREFIX + path,
+          durationMs: await readDuration(file),
+        });
+      }
+      return addTracks(playlistId, tracks);
+    },
+    [userId, addTracks],
+  );
+
   return {
     playlists: query.data ?? [],
     ready: Boolean(userId) && !query.isPending,
     createPlaylist,
     addTracks,
+    uploadLocalFiles,
     removeTrack,
     renamePlaylist,
     deletePlaylist,

@@ -1,0 +1,3 @@
+CREATE POLICY "Users read own songs" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'songs' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Users upload own songs" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'songs' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Users delete own songs" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'songs' AND (storage.foldername(name))[1] = auth.uid()::text);
