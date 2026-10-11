@@ -1,7 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ListMusic, Music2 } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { ListMusic, Music2, Plus, Upload, Youtube } from "lucide-react";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { usePlaylists, formatDuration } from "@/lib/playlists";
 
 export const Route = createFileRoute("/playlists/")({
@@ -23,16 +34,50 @@ export const Route = createFileRoute("/playlists/")({
 });
 
 function PlaylistsPage() {
-  const { playlists, ready } = usePlaylists();
+  const { playlists, ready, createPlaylist } = usePlaylists();
+  const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const create = async (type: "youtube" | "mp3") => {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    try {
+      const pl = await createPlaylist(name, description);
+      toast.success(`Playlist "${pl.name}" criada`);
+      setCreating(false);
+      setName("");
+      setDescription("");
+      if (type === "youtube") {
+        void navigate({ to: "/" });
+      } else {
+        void navigate({ to: "/playlists/$id", params: { id: pl.id }, search: { add: "mp3" } });
+      }
+    } catch {
+      toast.error("Não foi possível criar a playlist. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">Minhas playlists</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Suas playlists ficam salvas na sua conta e aparecem em qualquer aparelho.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Minhas playlists</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Suas playlists ficam salvas na sua conta e aparecem em qualquer aparelho.
+            </p>
+          </div>
+          <Button className="rounded-full" onClick={() => setCreating(true)}>
+            <Plus className="size-4" />
+            Criar nova playlist
+          </Button>
+        </div>
 
         {!ready ? null : playlists.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border bg-card p-12 text-center">
@@ -88,6 +133,64 @@ function PlaylistsPage() {
           </div>
         )}
       </main>
+
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar nova playlist</DialogTitle>
+            <DialogDescription>
+              Dê um nome e escolha de onde virão as músicas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-pl-name">Nome da playlist</Label>
+              <Input
+                id="new-pl-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex.: Rock para dirigir"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-pl-desc">Descrição (opcional)</Label>
+              <Input
+                id="new-pl-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Uma frase sobre a playlist"
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={!name.trim() || busy}
+                onClick={() => void create("youtube")}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-primary/40 disabled:opacity-50"
+              >
+                <Youtube className="size-6 text-primary" />
+                <span className="text-sm font-medium">Buscar no YouTube</span>
+                <span className="text-xs text-muted-foreground">
+                  Abre a busca para escolher as músicas
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={!name.trim() || busy}
+                onClick={() => void create("mp3")}
+                className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-primary/40 disabled:opacity-50"
+              >
+                <Upload className="size-6 text-primary" />
+                <span className="text-sm font-medium">MP3 do PC</span>
+                <span className="text-xs text-muted-foreground">
+                  Abre a playlist para enviar seus arquivos
+                </span>
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

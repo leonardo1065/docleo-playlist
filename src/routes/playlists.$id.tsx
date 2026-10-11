@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -17,6 +17,8 @@ import {
 import { usePlaylists, formatDuration } from "@/lib/playlists";
 
 export const Route = createFileRoute("/playlists/$id")({
+  validateSearch: (search: Record<string, unknown>): { add?: string } =>
+    typeof search["add"] === "string" ? { add: search["add"] } : {},
   head: () => ({
     meta: [
       { title: "Playlist — Monte sua Playlist" },
@@ -45,6 +47,16 @@ function PlaylistDetail() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
+  const { add } = Route.useSearch();
+  const autoOpened = useRef(false);
+
+  useEffect(() => {
+    if (add === "mp3" && ready && !autoOpened.current) {
+      autoOpened.current = true;
+      fileRef.current?.click();
+    }
+  }, [add, ready]);
 
   const playlist = playlists.find((p) => p.id === id);
   const currentTrack =
