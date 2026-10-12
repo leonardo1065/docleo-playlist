@@ -48,7 +48,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
 
   nextRef.current = () => {
     if (index + 1 < tracks.length) onIndexChange(index + 1);
-    else onStop();
+    else onIndexChange(0);
   };
 
   // YouTube playback
