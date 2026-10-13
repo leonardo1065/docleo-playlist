@@ -3,6 +3,8 @@ import type { Track } from "@/lib/itunes.functions";
 import { formatDuration } from "@/lib/playlists";
 import { cn } from "@/lib/utils";
 
+type Progress = { currentMs: number; durationMs: number };
+
 type Props = {
   track: Track;
   playing: boolean;
@@ -11,6 +13,7 @@ type Props = {
   onToggleSelect?: () => void;
   action?: React.ReactNode;
   inlinePlayer?: boolean;
+  progress?: Progress | null;
 };
 
 export function TrackRow({
@@ -21,6 +24,7 @@ export function TrackRow({
   onToggleSelect,
   action,
   inlinePlayer = true,
+  progress,
 }: Props) {
   const selectable = typeof onToggleSelect === "function";
   const playable = Boolean(track.previewUrl || track.youtubeId);
