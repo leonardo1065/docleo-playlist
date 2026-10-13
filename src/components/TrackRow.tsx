@@ -13,7 +13,7 @@ type Props = {
   onToggleSelect?: () => void;
   action?: React.ReactNode;
   inlinePlayer?: boolean;
-  progress?: Progress | null;
+  progress?: Progress | null | undefined;
 };
 
 export function TrackRow({
