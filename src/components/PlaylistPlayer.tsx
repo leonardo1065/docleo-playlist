@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SkipBack, SkipForward, Square } from "lucide-react";
 import type { Track } from "@/lib/itunes.functions";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 type YTPlayer = {
   loadVideoById: (id: string) => void;
   destroy: () => void;
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
 };
 
 declare global {
@@ -32,24 +34,35 @@ function loadYouTubeApi(): Promise<void> {
   return ytReady;
 }
 
+export type PlaybackProgress = { currentMs: number; durationMs: number };
+
 type Props = {
   tracks: Track[];
   index: number;
   onIndexChange: (i: number) => void;
   onStop: () => void;
+  onProgress?: (progress: PlaybackProgress) => void;
 };
 
-export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) {
+export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgress }: Props) {
   const track = tracks[index];
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const nextRef = useRef<() => void>(() => undefined);
+  const [progress, setProgress] = useState<PlaybackProgress>({ currentMs: 0, durationMs: 0 });
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
   nextRef.current = () => {
     if (index + 1 < tracks.length) onIndexChange(index + 1);
     else onIndexChange(0);
   };
+
+  // Report progress up so the playing row can show an elapsed-time bar
+  useEffect(() => {
+    onProgressRef.current?.(progress);
+  }, [progress]);
 
   // YouTube playback
   useEffect(() => {
@@ -80,6 +93,24 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
     };
   }, [track?.youtubeId]);
 
+  // Poll elapsed time from the YouTube player
+  useEffect(() => {
+    if (!track?.youtubeId) return;
+    setProgress({ currentMs: 0, durationMs: 0 });
+    const timer = setInterval(() => {
+      const p = playerRef.current;
+      const getTime = p?.getCurrentTime;
+      const getDur = p?.getDuration;
+      if (p && typeof getTime === "function" && typeof getDur === "function") {
+        setProgress({
+          currentMs: Math.max(0, getTime.call(p) * 1000),
+          durationMs: Math.max(0, getDur.call(p) * 1000),
+        });
+      }
+    }, 500);
+    return () => clearInterval(timer);
+  }, [track?.youtubeId]);
+
   // When switching from YouTube to a preview track, drop the YouTube player
   useEffect(() => {
     if (track?.youtubeId) return;
@@ -94,9 +125,10 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
     };
   }, []);
 
-  // iTunes preview playback
+  // iTunes preview / local MP3 playback
   useEffect(() => {
     if (!track || track.youtubeId) return;
+    setProgress({ currentMs: 0, durationMs: track.durationMs });
     if (!track.previewUrl) {
       const t = setTimeout(() => nextRef.current(), 400);
       return () => clearTimeout(t);
@@ -104,10 +136,17 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
     const audio = new Audio(track.previewUrl);
     audioRef.current = audio;
     const onEnd = () => nextRef.current();
+    const onTime = () =>
+      setProgress({
+        currentMs: audio.currentTime * 1000,
+        durationMs: (audio.duration || track.durationMs / 1000) * 1000,
+      });
     audio.addEventListener("ended", onEnd);
+    audio.addEventListener("timeupdate", onTime);
     void audio.play().catch(() => undefined);
     return () => {
       audio.removeEventListener("ended", onEnd);
+      audio.removeEventListener("timeupdate", onTime);
       audio.pause();
       audioRef.current = null;
     };
@@ -149,6 +188,22 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
           <Square className="size-4" />
         </Button>
       </div>
+      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="w-10 shrink-0 tabular-nums">{formatClock(progress.currentMs)}</span>
+        <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500 ease-linear"
+            style={{
+              width: progress.durationMs > 0
+                ? `${Math.min(100, (progress.currentMs / progress.durationMs) * 100)}%`
+                : "0%",
+            }}
+          />
+        </div>
+        <span className="w-10 shrink-0 text-right tabular-nums">
+          {progress.durationMs > 0 ? formatClock(progress.durationMs) : "--:--"}
+        </span>
+      </div>
       {track.youtubeId ? (
         <div
           ref={hostRef}
@@ -157,4 +212,11 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop }: Props) 
       ) : null}
     </div>
   );
+}
+
+function formatClock(ms: number): string {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }

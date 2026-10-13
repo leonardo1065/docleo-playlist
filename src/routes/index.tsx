@@ -41,7 +41,7 @@ function Home() {
   const runYouTube = useServerFn(searchYouTube);
   const [selected, setSelected] = useState<Record<string, Track>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { playingId, toggle } = usePreviewPlayer();
+  const { playingId, toggle, progress } = usePreviewPlayer();
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["search", source, query],
@@ -160,6 +160,7 @@ function Home() {
                     track={track}
                     playing={playingId === track.id}
                     onTogglePlay={() => toggle(track.id, track.previewUrl)}
+                    progress={playingId === track.id ? progress : undefined}
                     selected={Boolean(selected[track.id])}
                     onToggleSelect={() => toggleSelect(track)}
                   />

@@ -3,6 +3,8 @@ import type { Track } from "@/lib/itunes.functions";
 import { formatDuration } from "@/lib/playlists";
 import { cn } from "@/lib/utils";
 
+type Progress = { currentMs: number; durationMs: number };
+
 type Props = {
   track: Track;
   playing: boolean;
@@ -11,6 +13,7 @@ type Props = {
   onToggleSelect?: () => void;
   action?: React.ReactNode;
   inlinePlayer?: boolean;
+  progress?: Progress | null | undefined;
 };
 
 export function TrackRow({
@@ -21,6 +24,7 @@ export function TrackRow({
   onToggleSelect,
   action,
   inlinePlayer = true,
+  progress,
 }: Props) {
   const selectable = typeof onToggleSelect === "function";
   const playable = Boolean(track.previewUrl || track.youtubeId);
@@ -102,6 +106,20 @@ export function TrackRow({
         </span>
       ) : null}
     </div>
+      {progress && progress.durationMs > 0 ? (
+        <div className="flex items-center gap-2 px-3 pb-3 text-xs text-muted-foreground">
+          <span className="w-9 shrink-0 tabular-nums">{formatDuration(progress.currentMs)}</span>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-linear"
+              style={{
+                width: `${Math.min(100, (progress.currentMs / progress.durationMs) * 100)}%`,
+              }}
+            />
+          </div>
+          <span className="w-9 shrink-0 text-right tabular-nums">{formatDuration(progress.durationMs)}</span>
+        </div>
+      ) : null}
       {inlinePlayer && playing && track.youtubeId ? (
         <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <iframe
