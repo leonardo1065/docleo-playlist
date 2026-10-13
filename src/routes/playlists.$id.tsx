@@ -201,6 +201,7 @@ function PlaylistDetail() {
                 track={track}
                 inlinePlayer={false}
                 playing={currentTrack?.id === track.id}
+                progress={currentTrack?.id === track.id ? progress : undefined}
                 onTogglePlay={() =>
                   setQueueIndex(currentTrack?.id === track.id ? null : i)
                 }
