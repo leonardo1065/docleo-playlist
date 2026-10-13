@@ -42,6 +42,7 @@ function PlaylistDetail() {
   const { playlists, ready, removeTrack, renamePlaylist, deletePlaylist, uploadLocalFiles } =
     usePlaylists();
   const [queueIndex, setQueueIndex] = useState<number | null>(null);
+  const [progress, setProgress] = useState<{ currentMs: number; durationMs: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
@@ -180,6 +181,7 @@ function PlaylistDetail() {
               index={queueIndex}
               onIndexChange={setQueueIndex}
               onStop={() => setQueueIndex(null)}
+              onProgress={setProgress}
             />
           </div>
         ) : null}
