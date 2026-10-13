@@ -24,9 +24,11 @@ export function usePreviewPlayer() {
         setProgress(null);
       });
       sharedAudio.addEventListener("timeupdate", () => {
+        const el = sharedAudio;
+        if (!el) return;
         setProgress({
-          currentMs: sharedAudio.currentTime * 1000,
-          durationMs: (sharedAudio.duration || 0) * 1000,
+          currentMs: el.currentTime * 1000,
+          durationMs: (el.duration || 0) * 1000,
         });
       });
     }

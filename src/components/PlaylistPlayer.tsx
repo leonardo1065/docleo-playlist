@@ -99,10 +99,12 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
     setProgress({ currentMs: 0, durationMs: 0 });
     const timer = setInterval(() => {
       const p = playerRef.current;
-      if (p && typeof p.getCurrentTime === "function") {
+      const getTime = p?.getCurrentTime;
+      const getDur = p?.getDuration;
+      if (p && typeof getTime === "function" && typeof getDur === "function") {
         setProgress({
-          currentMs: Math.max(0, p.getCurrentTime() * 1000),
-          durationMs: Math.max(0, p.getDuration() * 1000),
+          currentMs: Math.max(0, getTime.call(p) * 1000),
+          durationMs: Math.max(0, getDur.call(p) * 1000),
         });
       }
     }, 500);
