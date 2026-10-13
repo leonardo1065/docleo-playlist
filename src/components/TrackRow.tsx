@@ -106,6 +106,20 @@ export function TrackRow({
         </span>
       ) : null}
     </div>
+      {progress && progress.durationMs > 0 ? (
+        <div className="flex items-center gap-2 px-3 pb-3 text-xs text-muted-foreground">
+          <span className="w-9 shrink-0 tabular-nums">{formatDuration(progress.currentMs)}</span>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-linear"
+              style={{
+                width: `${Math.min(100, (progress.currentMs / progress.durationMs) * 100)}%`,
+              }}
+            />
+          </div>
+          <span className="w-9 shrink-0 text-right tabular-nums">{formatDuration(progress.durationMs)}</span>
+        </div>
+      ) : null}
       {inlinePlayer && playing && track.youtubeId ? (
         <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
           <iframe
