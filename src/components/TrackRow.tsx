@@ -127,7 +127,7 @@ export function TrackRow({
             src={`https://www.youtube-nocookie.com/embed/${track.youtubeId}?autoplay=1&rel=0`}
             allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
-            className="aspect-video w-full rounded-lg border-0"
+            className="mx-auto aspect-video w-72 max-w-full rounded-lg border-0"
           />
         </div>
       ) : null}
