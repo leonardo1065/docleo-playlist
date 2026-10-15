@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { SkipBack, SkipForward, Square } from "lucide-react";
+import { Eye, EyeOff, SkipBack, SkipForward, Square } from "lucide-react";
 import type { Track } from "@/lib/itunes.functions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type YTPlayer = {
   loadVideoById: (id: string) => void;
@@ -51,6 +52,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const nextRef = useRef<() => void>(() => undefined);
   const [progress, setProgress] = useState<PlaybackProgress>({ currentMs: 0, durationMs: 0 });
+  const [showVideo, setShowVideo] = useState(false);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
 
@@ -187,6 +189,17 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
         <Button variant="outline" size="icon" className="rounded-full" aria-label="Parar" onClick={onStop}>
           <Square className="size-4" />
         </Button>
+        {track.youtubeId ? (
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full"
+            aria-label={showVideo ? "Ocultar vídeo" : "Mostrar vídeo"}
+            onClick={() => setShowVideo((v) => !v)}
+          >
+            {showVideo ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </Button>
+        ) : null}
       </div>
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="w-10 shrink-0 tabular-nums">{formatClock(progress.currentMs)}</span>
@@ -207,7 +220,10 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
       {track.youtubeId ? (
         <div
           ref={hostRef}
-          className="mt-4 aspect-video w-full overflow-hidden rounded-lg bg-muted [&>iframe]:size-full"
+          className={cn(
+            "mt-4 aspect-video w-full overflow-hidden rounded-lg bg-muted [&>iframe]:size-full",
+            !showVideo && "hidden",
+          )}
         />
       ) : null}
     </div>
