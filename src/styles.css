@@ -63,6 +63,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+#lovable-badge {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 :root {
   --radius: 0.75rem;
   --background: oklch(0.986 0.002 247);
