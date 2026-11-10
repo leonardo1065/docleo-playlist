@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, SkipBack, SkipForward, Square } from "lucide-react";
+import { Eye, EyeOff, Minus, Plus, SkipBack, SkipForward, Square } from "lucide-react";
 import type { Track } from "@/lib/itunes.functions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 type YTPlayer = {
   loadVideoById: (id: string) => void;
   destroy: () => void;
+  setVolume?: (volume: number) => void;
   getCurrentTime?: () => number;
   getDuration?: () => number;
 };
@@ -50,8 +51,11 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const youtubeReadyRef = useRef(false);
+  const volumeRef = useRef(100);
   const nextRef = useRef<() => void>(() => undefined);
   const [progress, setProgress] = useState<PlaybackProgress>({ currentMs: 0, durationMs: 0 });
+  const [volume, setVolume] = useState(100);
   const [showVideo, setShowVideo] = useState(false);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
@@ -84,6 +88,10 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
         host: "https://www.youtube-nocookie.com",
         playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
         events: {
+          onReady: (e: { target: YTPlayer }) => {
+            youtubeReadyRef.current = true;
+            e.target.setVolume?.(volumeRef.current);
+          },
           onStateChange: (e: { data: number }) => {
             if (e.data === window.YT?.PlayerState.ENDED) nextRef.current();
           },
@@ -118,14 +126,24 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
     if (track?.youtubeId) return;
     playerRef.current?.destroy();
     playerRef.current = null;
+    youtubeReadyRef.current = false;
   }, [track?.youtubeId]);
 
   useEffect(() => {
     return () => {
       playerRef.current?.destroy();
       playerRef.current = null;
+      youtubeReadyRef.current = false;
     };
   }, []);
+
+  const changeVolume = (amount: number) => {
+    const next = Math.max(0, Math.min(100, volumeRef.current + amount));
+    volumeRef.current = next;
+    setVolume(next);
+    if (audioRef.current) audioRef.current.volume = next / 100;
+    if (youtubeReadyRef.current) playerRef.current?.setVolume?.(next);
+  };
 
   // iTunes preview / local MP3 playback
   useEffect(() => {
@@ -136,6 +154,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
       return () => clearTimeout(t);
     }
     const audio = new Audio(track.previewUrl);
+    audio.volume = volumeRef.current / 100;
     audioRef.current = audio;
     const onEnd = () => nextRef.current();
     const onTime = () =>
@@ -200,6 +219,34 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
             {showVideo ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
         ) : null}
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+        <span>Volume</span>
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          aria-label="Diminuir volume"
+          title="Diminuir volume"
+          disabled={volume === 0}
+          onClick={() => changeVolume(-10)}
+        >
+          <Minus className="size-4" />
+        </Button>
+        <span className="w-9 text-center tabular-nums" aria-live="polite">
+          {volume}%
+        </span>
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-full"
+          aria-label="Aumentar volume"
+          title="Aumentar volume"
+          disabled={volume === 100}
+          onClick={() => changeVolume(10)}
+        >
+          <Plus className="size-4" />
+        </Button>
       </div>
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
         <span className="w-10 shrink-0 tabular-nums">{formatClock(progress.currentMs)}</span>
