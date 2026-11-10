@@ -99,12 +99,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-2.5 text-muted-foreground"
+                  className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition-colors hover:border-input hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                   title={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -125,12 +125,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-2.5 text-muted-foreground"
+                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-transparent text-muted-foreground transition-colors hover:border-input hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => setShowConfirm((visible) => !visible)}
                     aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
                     title={showConfirm ? "Ocultar senha" : "Mostrar senha"}
                   >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
               </div>
