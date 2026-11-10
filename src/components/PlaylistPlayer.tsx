@@ -56,13 +56,17 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
   const nextRef = useRef<() => void>(() => undefined);
   const [progress, setProgress] = useState<PlaybackProgress>({ currentMs: 0, durationMs: 0 });
   const [volume, setVolume] = useState(100);
+  const [playbackCycle, setPlaybackCycle] = useState(0);
   const [showVideo, setShowVideo] = useState(false);
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
 
   nextRef.current = () => {
     if (index + 1 < tracks.length) onIndexChange(index + 1);
-    else onIndexChange(0);
+    else {
+      onIndexChange(0);
+      setPlaybackCycle((cycle) => cycle + 1);
+    }
   };
 
   // Report progress up so the playing row can show an elapsed-time bar
@@ -101,7 +105,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
     return () => {
       cancelled = true;
     };
-  }, [track?.youtubeId]);
+  }, [track?.youtubeId, index, playbackCycle]);
 
   // Poll elapsed time from the YouTube player
   useEffect(() => {
@@ -119,7 +123,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
       }
     }, 500);
     return () => clearInterval(timer);
-  }, [track?.youtubeId]);
+  }, [track?.youtubeId, index, playbackCycle]);
 
   // When switching from YouTube to a preview track, drop the YouTube player
   useEffect(() => {
@@ -171,7 +175,7 @@ export function PlaylistPlayer({ tracks, index, onIndexChange, onStop, onProgres
       audio.pause();
       audioRef.current = null;
     };
-  }, [track]);
+  }, [track, index, playbackCycle]);
 
   if (!track) return null;
 
