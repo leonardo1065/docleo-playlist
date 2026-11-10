@@ -2,18 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Sparkles, X } from "lucide-react";
+import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackRow } from "@/components/TrackRow";
 import { AddToPlaylistDialog } from "@/components/AddToPlaylistDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { searchTracksClient, type Track } from "@/lib/itunes";
 import { searchYouTube } from "@/lib/youtube.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { cn } from "@/lib/utils";
 import { usePreviewPlayer } from "@/lib/use-preview-player";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
+type SuggestedSearch = { query: string; reason: string };
+type RecommendationGroup = SuggestedSearch & { tracks: Track[] };
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,7 +55,17 @@ function Home() {
   const runYouTube = useServerFn(searchYouTube);
   const [selected, setSelected] = useState<Record<string, Track>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [recommendDialogOpen, setRecommendDialogOpen] = useState(false);
+  const [recommendationBusy, setRecommendationBusy] = useState(false);
+  const [recommendationGroups, setRecommendationGroups] =
+    useState<RecommendationGroup[] | null>(null);
+  const [favoriteArtists, setFavoriteArtists] = useState("");
+  const [favoriteSongs, setFavoriteSongs] = useState("");
+  const [desiredMood, setDesiredMood] = useState("");
   const { playingId, toggle, progress } = usePreviewPlayer();
+  const hasRecommendationInput = Boolean(
+    favoriteArtists.trim() || favoriteSongs.trim() || desiredMood.trim(),
+  );
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["search", source, query],
@@ -61,6 +85,73 @@ function Home() {
       else next[track.id] = track;
       return next;
     });
+
+  const generateRecommendations = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (recommendationBusy || !hasRecommendationInput) return;
+    setRecommendationBusy(true);
+    setRecommendationGroups(null);
+    try {
+      const { data: generated, error } = await supabase.functions.invoke<{
+        suggestions: SuggestedSearch[];
+      }>("recommend-music", {
+        body: {
+          artists: favoriteArtists,
+          favoriteSongs,
+          mood: desiredMood,
+        },
+      });
+      if (error) {
+        const context = "context" in error ? error.context : null;
+        if (context instanceof Response) {
+          const errorBody = (await context.clone().json().catch(() => null)) as
+            | { error?: unknown }
+            | null;
+          if (typeof errorBody?.error === "string") throw new Error(errorBody.error);
+        }
+        throw new Error("Não foi possível gerar sugestões agora. Tente novamente.");
+      }
+
+      const suggestions = generated?.suggestions ?? [];
+      const searched = await Promise.all(
+        suggestions.map(async (suggestion) => {
+          const tracks =
+            source === "youtube"
+              ? await runYouTube({ data: { term: suggestion.query } })
+              : await searchTracksClient(suggestion.query);
+          return { ...suggestion, tracks };
+        }),
+      );
+
+      const seenTrackIds = new Set<string>();
+      const groups = searched
+        .map((group) => ({
+          ...group,
+          tracks: group.tracks
+            .filter((track) => {
+              if (seenTrackIds.has(track.id)) return false;
+              seenTrackIds.add(track.id);
+              return true;
+            })
+            .slice(0, 2),
+        }))
+        .filter((group) => group.tracks.length > 0);
+
+      setRecommendationGroups(groups);
+      setTerm("");
+      setQuery("");
+      setRecommendDialogOpen(false);
+      if (groups.length === 0) {
+        toast.info("Não encontramos essas sugestões no catálogo. Tente outras preferências.");
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível gerar sugestões agora.",
+      );
+    } finally {
+      setRecommendationBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-forest pb-32">
@@ -85,6 +176,7 @@ function Home() {
             className="mx-auto mt-8 flex w-full max-w-xl items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
+              setRecommendationGroups(null);
               setQuery(term.trim());
             }}
           >
@@ -119,7 +211,10 @@ function Home() {
                 type="button"
                 role="radio"
                 aria-checked={source === value}
-                onClick={() => setSource(value)}
+                onClick={() => {
+                  setSource(value);
+                  setRecommendationGroups(null);
+                }}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-medium transition-colors",
                   source === value
@@ -131,10 +226,63 @@ function Home() {
               </button>
             ))}
           </div>
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-5 rounded-full border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              onClick={() => setRecommendDialogOpen(true)}
+            >
+              <Sparkles className="size-4" />
+              Sugerir músicas com IA
+            </Button>
+          </div>
         </section>
 
         <section className="pb-10">
-          {isFetching ? (
+          {recommendationBusy ? (
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-1/2 rounded-xl" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-[80px] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : recommendationGroups ? (
+            recommendationGroups.length > 0 ? (
+              <div className="space-y-6 rounded-3xl border border-white/10 bg-white/70 p-6 backdrop-blur-xl dark:bg-black/70">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Sugestões para você</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Encontramos estas músicas no catálogo. Selecione as que quiser adicionar.
+                  </p>
+                </div>
+                {recommendationGroups.map((group) => (
+                  <div key={group.query} className="space-y-3">
+                    <div>
+                      <h3 className="text-sm font-semibold">{group.query}</h3>
+                      <p className="text-xs text-muted-foreground">{group.reason}</p>
+                    </div>
+                    {group.tracks.map((track) => (
+                      <TrackRow
+                        key={track.id}
+                        track={track}
+                        playing={playingId === track.id}
+                        onTogglePlay={() => toggle(track.id, track.previewUrl)}
+                        progress={playingId === track.id ? progress : undefined}
+                        selected={Boolean(selected[track.id])}
+                        onToggleSelect={() => toggleSelect(track)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Não encontramos músicas correspondentes no catálogo.
+              </p>
+            )
+          ) : isFetching ? (
             <div className="space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-[80px] w-full rounded-xl" />
@@ -177,6 +325,66 @@ function Home() {
 
         </section>
       </main>
+
+      <Dialog open={recommendDialogOpen} onOpenChange={setRecommendDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Descubra novas músicas</DialogTitle>
+            <DialogDescription>
+              Conte o que você gosta e qual clima procura. As sugestões serão conferidas no
+              catálogo antes de aparecerem.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={generateRecommendations} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="favorite-artists">Artistas favoritos</Label>
+              <Textarea
+                id="favorite-artists"
+                value={favoriteArtists}
+                onChange={(e) => setFavoriteArtists(e.target.value)}
+                placeholder="Ex.: Marisa Monte, Djavan, Adele"
+                maxLength={300}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="favorite-songs">Músicas de que você gosta</Label>
+              <Textarea
+                id="favorite-songs"
+                value={favoriteSongs}
+                onChange={(e) => setFavoriteSongs(e.target.value)}
+                placeholder="Ex.: O Leãozinho, Ainda Bem"
+                maxLength={500}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desired-mood">Clima desejado</Label>
+              <Input
+                id="desired-mood"
+                value={desiredMood}
+                onChange={(e) => setDesiredMood(e.target.value)}
+                placeholder="Ex.: relaxante para ouvir no fim do dia"
+                maxLength={160}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setRecommendDialogOpen(false)}
+                disabled={recommendationBusy}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={!hasRecommendationInput || recommendationBusy}>
+                <Sparkles className="size-4" />
+                {recommendationBusy ? "Buscando sugestões..." : "Gerar sugestões"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {selectedList.length > 0 ? (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur">
