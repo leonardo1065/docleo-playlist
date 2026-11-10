@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Lock, Music2, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Music2, User } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
 
   if (!ready) {
@@ -86,15 +88,24 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="mínimo 6 caracteres"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   minLength={6}
                   required
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-2.5 text-muted-foreground"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
             {mode === "register" ? (
@@ -104,14 +115,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm"
-                    type="password"
-                    className="pl-10"
+                    type={showConfirm ? "text" : "password"}
+                    className="pl-10 pr-10"
                     autoComplete="new-password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     minLength={6}
                     required
                   />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-2.5 text-muted-foreground"
+                    onClick={() => setShowConfirm((visible) => !visible)}
+                    aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                    title={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
             ) : null}
