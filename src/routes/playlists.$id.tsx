@@ -114,7 +114,7 @@ function PlaylistDetail() {
             <input
               ref={fileRef}
               type="file"
-              accept="audio/*,.mp3"
+              accept=".mp3,audio/mpeg"
               multiple
               className="hidden"
               onChange={async (e) => {
