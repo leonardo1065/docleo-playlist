@@ -18,11 +18,12 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tracks: Track[];
+  localFiles?: File[];
   onDone: () => void;
 };
 
-export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Props) {
-  const { playlists, createPlaylist, addTracks } = usePlaylists();
+export function AddToPlaylistDialog({ open, onOpenChange, tracks, localFiles, onDone }: Props) {
+  const { playlists, createPlaylist, addTracks, uploadLocalFiles } = usePlaylists();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -94,8 +95,13 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
                 disabled={!name.trim() || busy}
                 onClick={() =>
                   run(async () => {
-                    const pl = await createPlaylist(name, description, tracks);
-                    finish(pl.name, tracks.length);
+                    if (localFiles?.length) {
+                      const pl = await createPlaylist(name, description);
+                      finish(pl.name, await uploadLocalFiles(pl.id, localFiles));
+                    } else {
+                      const pl = await createPlaylist(name, description, tracks);
+                      finish(pl.name, tracks.length);
+                    }
                   })
                 }
               >
@@ -124,7 +130,14 @@ export function AddToPlaylistDialog({ open, onOpenChange, tracks, onDone }: Prop
                     type="button"
                     disabled={busy}
                     onClick={() =>
-                      run(async () => finish(p.name, await addTracks(p.id, tracks)))
+                      run(async () =>
+                        finish(
+                          p.name,
+                          localFiles?.length
+                            ? await uploadLocalFiles(p.id, localFiles)
+                            : await addTracks(p.id, tracks),
+                        ),
+                      )
                     }
                     className="flex w-full items-center justify-between rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
                   >

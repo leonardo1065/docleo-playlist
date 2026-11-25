@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Sparkles, X } from "lucide-react";
+import { Search, Sparkles, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackRow } from "@/components/TrackRow";
@@ -28,6 +28,36 @@ import {
 
 type SuggestedSearch = { query: string; reason: string };
 type RecommendationGroup = SuggestedSearch & { tracks: Track[] };
+type LocalMp3Result = { track: Track; file: File };
+
+async function createLocalMp3Result(file: File): Promise<LocalMp3Result> {
+  const previewUrl = URL.createObjectURL(file);
+  const durationMs = await new Promise<number>((resolve) => {
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () =>
+      resolve(Number.isFinite(audio.duration) ? Math.round(audio.duration * 1000) : 0);
+    audio.onerror = () => resolve(0);
+    audio.src = previewUrl;
+  });
+  const base = file.name.replace(/\.[^.]+$/, "");
+  const separator = base.indexOf(" - ");
+  const artist = separator >= 0 ? base.slice(0, separator) : "Meu computador";
+  const title = separator >= 0 ? base.slice(separator + 3) : base;
+
+  return {
+    file,
+    track: {
+      id: `local-${crypto.randomUUID()}`,
+      title: title.trim() || base,
+      artist: artist.trim(),
+      album: "Arquivo do PC",
+      artwork: "",
+      previewUrl,
+      durationMs,
+    },
+  };
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -51,7 +81,9 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [term, setTerm] = useState("");
   const [query, setQuery] = useState("");
-  const [source, setSource] = useState<"itunes" | "youtube">("youtube");
+  const [source, setSource] = useState<"itunes" | "youtube" | "pc">("youtube");
+  const [localResults, setLocalResults] = useState<LocalMp3Result[]>([]);
+  const localFileRef = useRef<HTMLInputElement>(null);
   const runYouTube = useServerFn(searchYouTube);
   const [selected, setSelected] = useState<Record<string, Track>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -71,12 +103,23 @@ function Home() {
     queryKey: ["search", source, query],
     queryFn: () =>
       source === "youtube" ? runYouTube({ data: { term: query } }) : searchTracksClient(query),
-    enabled: query.length > 0,
+    enabled: source !== "pc" && query.length > 0,
     staleTime: 5 * 60 * 1000,
   });
 
+  useEffect(
+    () => () => {
+      localResults.forEach(({ track }) => {
+        if (track.previewUrl) URL.revokeObjectURL(track.previewUrl);
+      });
+    },
+    [localResults],
+  );
 
   const selectedList = Object.values(selected);
+  const selectedLocalFiles = localResults
+    .filter(({ track }) => Boolean(selected[track.id]))
+    .map(({ file }) => file);
 
   const toggleSelect = (track: Track) =>
     setSelected((prev) => {
@@ -176,34 +219,72 @@ function Home() {
             className="mx-auto mt-8 flex w-full max-w-xl items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
+              if (source === "pc") {
+                localFileRef.current?.click();
+                return;
+              }
               setRecommendationGroups(null);
               setQuery(term.trim());
             }}
           >
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={term}
-                onChange={(e) => setTerm(e.target.value)}
-                placeholder="Ex.: Legião Urbana, Adele, Racionais..."
-                aria-label="Buscar artista ou banda"
-                className="h-12 rounded-full border-border bg-card pl-10 text-base shadow-sm"
-              />
-            </div>
+            {source === "pc" ? (
+              <div className="flex h-12 flex-1 items-center gap-3 rounded-full border border-border bg-card px-4 text-sm text-muted-foreground shadow-sm">
+                <Upload className="size-4 shrink-0" />
+                Escolha arquivos MP3 do seu computador
+              </div>
+            ) : (
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  placeholder="Ex.: Legião Urbana, Adele, Racionais..."
+                  aria-label="Buscar artista ou banda"
+                  className="h-12 rounded-full border-border bg-card pl-10 text-base shadow-sm"
+                />
+              </div>
+            )}
+            <input
+              ref={localFileRef}
+              type="file"
+              accept=".mp3,audio/mpeg"
+              multiple
+              className="hidden"
+              onChange={async (e) => {
+                const chosenFiles = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (!chosenFiles.length) return;
+
+                const files = chosenFiles.filter((file) => file.name.toLowerCase().endsWith(".mp3"));
+                if (files.length !== chosenFiles.length) {
+                  toast.info("A busca no computador aceita somente arquivos MP3.");
+                }
+                if (files.length === 0) return;
+
+                try {
+                  const results = await Promise.all(files.map(createLocalMp3Result));
+                  setLocalResults(results);
+                  setSelected({});
+                } catch {
+                  toast.error("Não foi possível abrir os arquivos selecionados.");
+                }
+              }}
+            />
             <Button type="submit" size="lg" className="h-12 rounded-full px-6">
-              Buscar
+              {source === "pc" ? "Selecionar MP3" : "Buscar"}
             </Button>
           </form>
 
           <div
             role="radiogroup"
             aria-label="Fonte da busca"
-            className="mx-auto mt-4 inline-flex rounded-full border border-white/20 bg-white/10 p-1 backdrop-blur-md"
+            className="mx-auto mt-4 inline-flex max-w-full flex-wrap justify-center rounded-full border border-white/20 bg-white/10 p-1 backdrop-blur-md"
           >
             {(
               [
                 ["youtube", "YouTube (música completa)"],
                 ["itunes", "iTunes (prévia 30s)"],
+                ["pc", "Meu PC (MP3)"],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -212,7 +293,11 @@ function Home() {
                 role="radio"
                 aria-checked={source === value}
                 onClick={() => {
+                  if (source === value) return;
                   setSource(value);
+                  setQuery("");
+                  setSelected({});
+                  setLocalResults([]);
                   setRecommendationGroups(null);
                 }}
                 className={cn(
@@ -232,6 +317,7 @@ function Home() {
               type="button"
               variant="outline"
               className="mt-5 rounded-full border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              disabled={source === "pc"}
               onClick={() => setRecommendDialogOpen(true)}
             >
               <Sparkles className="size-4" />
@@ -241,7 +327,35 @@ function Home() {
         </section>
 
         <section className="pb-10">
-          {recommendationBusy ? (
+          {source === "pc" ? (
+            localResults.length > 0 ? (
+              <div className="rounded-3xl border border-white/10 bg-white/70 p-6 backdrop-blur-xl dark:bg-black/70">
+                <h2 className="mb-6 text-sm font-semibold text-foreground/80">
+                  {localResults.length} {" "}
+                  {localResults.length === 1 ? "MP3 encontrado" : "MP3s encontrados"} no computador
+                </h2>
+                <div className="space-y-3">
+                  {localResults.map(({ track }) => (
+                    <TrackRow
+                      key={track.id}
+                      track={track}
+                      playing={playingId === track.id}
+                      onTogglePlay={() => toggle(track.id, track.previewUrl)}
+                      progress={playingId === track.id ? progress : undefined}
+                      selected={Boolean(selected[track.id])}
+                      onToggleSelect={() => toggleSelect(track)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="py-20 text-center">
+                <p className="text-lg font-medium text-white drop-shadow-md">
+                  Selecione arquivos MP3 do computador para começar.
+                </p>
+              </div>
+            )
+          ) : recommendationBusy ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-1/2 rounded-xl" />
               {Array.from({ length: 4 }).map((_, i) => (
@@ -414,8 +528,10 @@ function Home() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         tracks={selectedList}
+        localFiles={selectedLocalFiles}
         onDone={() => {
           setSelected({});
+          setLocalResults([]);
           setTerm("");
           setQuery("");
         }}
